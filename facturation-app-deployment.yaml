@@ -1,3 +1,4 @@
+# Deployments
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -73,18 +74,24 @@ spec:
       containers:
       - name: database-container
         image: mysql:latest
+        env : 
+          - name: MYSQL_ROOT_PASSWORD
+            value: "password"          
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
         ports:
         - containerPort: 3306
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: database-storage 
       volumes:
-      - name: database-volume
+      - name: database-storage
         persistentVolumeClaim:
           claimName: database-pvc
-
 ---
+# Services
 apiVersion: v1
 kind: Service
 metadata:
@@ -124,6 +131,7 @@ spec:
       port: 3306
       targetPort: 3306
 ---
+# Persistent volume claim  
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -134,8 +142,21 @@ spec:
   resources:
     requests:
       storage: 10Gi
-
 ---
+# Persistent volume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: database-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data
+---
+#Horizontal pod autoscaller  
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
